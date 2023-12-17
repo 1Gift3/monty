@@ -1,86 +1,82 @@
 #include "monty.h"
 
 /**
- * main - monty interperter
- * @ac: the number of arguments
- * @av: the arguments
- * Return: void
+ * main - entry point
+ * @argc: arguments count
+ * @argv: list of arguments
+ * Return: always 0
  */
-int main(int ac, char *av[])
-{
-	stack_t *stack = NULL;
-	static char *string[1000] = {NULL};
-	int n = 0;
-	FILE *fd;
-	size_t bufsize = 1000;
 
-	if (ac != 2)
+int main(int argc, char *argv[])
+{
+	if (argc != 2)
 	{
 		fprintf(stderr, "USAGE: monty file\n");
 		exit(EXIT_FAILURE);
 	}
-	fd = fopen(av[1], "r");
-	if (fd == NULL)
-	{
-		fprintf(stderr, "Error: Can't open file %s\n", av[1]);
-		exit(EXIT_FAILURE);
-	}
-
-
-	for (n = 0; getline(&(string[n]), &bufsize, fd) > 0; n++)
-		;
-	execute(string, stack);
-	free_list(string);
-	fclose(fd);
+	open_file(argv[1]);
+	free_nodes();
 	return (0);
 }
 
 /**
- * execute - executes opcodes
- * @string: contents of file
- * @stack: the list
- * Return: void
+ * create_node - Creates a node.
+ * @n: Number to go inside the node.
+ * Return: Upon sucess a pointer to the node. Otherwise NULL.
  */
-
-void execute(char *string[], stack_t *stack)
+stack_t *create_node(int n)
 {
-	int ln, n, i;
+	stack_t *node;
 
-	instruction_t st[] = {
-		{"pall", pall},
-		{"pint", pint},
-		{"add", add},
-		{"swap", swap},
-		{"pop", pop},
-		{"null", NULL}
-	};
+	node = malloc(sizeof(stack_t));
+	if (node == NULL)
+		err(4);
+	node->next = NULL;
+	node->prev = NULL;
+	node->n = n;
+	return (node);
+}
 
-	for (ln = 1, n = 0; string[n + 1]; n++, ln++)
+/**
+ * free_nodes - Frees nodes in the stack.
+ */
+void free_nodes(void)
+{
+	stack_t *tmp;
+
+	if (head == NULL)
+		return;
+
+	while (head != NULL)
 	{
-		if (_strcmp("push", string[n]))
-			push(&stack, ln, pushint(string[n], ln));
-		else if (_strcmp("nop", string[n]))
-			;
-		else
-		{
-			i = 0;
-			while (!_strcmp(st[i].opcode, "null"))
-			{
-				if (_strcmp(st[i].opcode, string[n]))
-				{
-					st[i].f(&stack, ln);
-					break;
-				}
-				i++;
-			}
-			if (_strcmp(st[i].opcode, "null") && !_strcmp(string[n], "\n"))
-			{
-				fprintf(stderr, "L%u: unknown instruction %s", ln, string[n]);
-				if (!nlfind(string[n]))
-					fprintf(stderr, "\n");
-				exit(EXIT_FAILURE);
-			}
-		}
+		tmp = head;
+		head = head->next;
+		free(tmp);
 	}
-	free_stack(stack);
+}
+
+
+/**
+ * add_to_queue - Adds a node to the queue.
+ * @new_node: Pointer to the new node.
+ * @ln: line number of the opcode.
+ */
+void add_to_queue(stack_t **new_node, __attribute__((unused))unsigned int ln)
+{
+	stack_t *tmp;
+
+	if (new_node == NULL || *new_node == NULL)
+		exit(EXIT_FAILURE);
+	if (head == NULL)
+	{
+		head = *new_node;
+		return;
+	}
+	tmp = head;
+	while (tmp->next != NULL)
+		tmp = tmp->next;
+
+	tmp->next = *new_node;
+	(*new_node)->prev = tmp;
+
 }
